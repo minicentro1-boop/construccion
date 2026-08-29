@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BioRitmo: Entrenador de Respiración y Cardio v3.1</title>
+  <title>BioRitmo: Entrenador de Respiración y Cardio v3.2</title>
   <style>
     :root {
       --dur-subida: 5s;
@@ -366,7 +366,7 @@
 <body>
 
 <header>
-  <div class="version-tag">Versión 3.1</div>
+  <div class="version-tag">Versión 3.2</div>
   <a href="https://imaginhello.wixsite.com/imaginhellofotos" target="_blank" class="btn-top">🏠 Inicio</a>
 </header>
 
@@ -442,7 +442,7 @@
         <button id="btnAudioGuia" class="btn-audio" onclick="toggleGuiaAuditiva()">Sonido: DESACTIVADO</button>
       </div>
       <div style="font-size: 0.75rem; color: #81a1c1;">
-        Escucha tonos al inhalar/exhalar y el sonido del latido.
+        Escucha tonos al inhalar/exhalar y el pitido del latido.
       </div>
     </div>
   </div>
@@ -533,7 +533,7 @@
     else info.innerHTML = "💡 <strong>Rango normal:</strong> 65 - 80 BPM";
   }
 
-  /* SISTEMA DE AUDIO (TONOS Y LATIDOS DE CORAZÓN) */
+  /* SISTEMA DE AUDIO (PITIDOS Y AVISO DE FINALIZACIÓN) */
   function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -550,27 +550,37 @@
   function reproducirSonidoLatido() {
     if (!audioCtx) return;
     try {
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(60, audioCtx.currentTime);
-      osc1.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.08);
-      gain1.gain.setValueAtTime(0.5, audioCtx.currentTime);
-      gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-      osc1.connect(gain1); gain1.connect(audioCtx.destination);
-      osc1.start(); osc1.stop(audioCtx.currentTime + 0.08);
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime); // Pitido agudo tipo pulsiómetro
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    } catch(e){}
+  }
 
-      setTimeout(() => {
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(80, audioCtx.currentTime);
-        osc2.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.06);
-        gain2.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.06);
-        osc2.connect(gain2); gain2.connect(audioCtx.destination);
-        osc2.start(); osc2.stop(audioCtx.currentTime + 0.06);
-      }, 120);
+  function emitirAvisoFinalizacion() {
+    initAudio();
+    if (!audioCtx) return;
+    try {
+      [0, 150, 300].forEach((delay) => {
+        setTimeout(() => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1050, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.1);
+        }, delay);
+      });
     } catch(e){}
   }
 
@@ -594,7 +604,7 @@
     } catch(e){}
   }
 
-  /* CÁMARA Y LINTERNA (CORREGIDO) */
+  /* CÁMARA Y LINTERNA */
   async function iniciarCamara() {
     try {
       videoStream = await navigator.mediaDevices.getUserMedia({ 
@@ -604,24 +614,16 @@
       const video = document.getElementById('webcam');
       video.srcObject = videoStream;
 
-      // Esperar a que el video cargue sus metadatos antes de consultar las capacidades del sensor
-      await new Promise((resolve) => {
-        video.onloadedmetadata = () => resolve();
-      });
-
+      await new Promise((resolve) => { video.onloadedmetadata = () => resolve(); });
       await video.play();
 
-      // Intentar encender la linterna (Torch)
       const track = videoStream.getVideoTracks()[0];
       if (track && typeof track.getCapabilities === 'function') {
         const capabilities = track.getCapabilities();
         if (capabilities.torch) {
-          await track.applyConstraints({
-            advanced: [{ torch: true }]
-          }).catch(err => console.log("No se pudo encender la linterna:", err));
+          await track.applyConstraints({ advanced: [{ torch: true }] }).catch(() => {});
         }
       }
-
       return true;
     } catch (e) {
       document.getElementById('bpmTexto').innerText = "Cámara no disponible. Usa el modo Manual.";
@@ -661,10 +663,14 @@
         midiendoCam = false;
         detenerCamara();
         document.getElementById('btnCamStart').disabled = false;
+        emitirAvisoFinalizacion();
+
         if (ultimosLatidosCam.length >= 2) {
           let intervalo = (ultimosLatidosCam[ultimosLatidosCam.length - 1] - ultimosLatidosCam[0]) / (ultimosLatidosCam.length - 1);
           bpmRegistrado = Math.round(60000 / intervalo);
           document.getElementById('bpmTexto').innerHTML = `✅ Pulso: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
+          const diag = evaluarDiagnostico();
+          guardarEnHistorial(0, bpmRegistrado, diag);
         } else {
           document.getElementById('bpmTexto').innerText = "Lectura borrosa. Intenta nuevamente.";
         }
@@ -710,11 +716,14 @@
     if (n < 10) {
       document.getElementById('bpmTexto').innerText = `Toque ${n}/10...`;
     } else if (n === 10) {
+      emitirAvisoFinalizacion();
       let diferencias = [];
       for (let i = 5; i < latidosManuales.length; i++) diferencias.push(latidosManuales[i] - latidosManuales[i - 1]);
       bpmRegistrado = Math.round(60000 / (diferencias.reduce((a, b) => a + b) / diferencias.length));
       document.getElementById('bpmTexto').innerHTML = `✅ Pulso Registrado: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
       latidosManuales = [];
+      const diag = evaluarDiagnostico();
+      guardarEnHistorial(0, bpmRegistrado, diag);
     }
   }
 
@@ -769,6 +778,7 @@
   function finalizarSesion() {
     ejecutando = false;
     clearInterval(cronoInterval); clearTimeout(animacionTimeout);
+    emitirAvisoFinalizacion();
 
     document.getElementById('ball').className = "ball";
     document.getElementById('estado').innerText = "✨ ¡Sesión completada!";
@@ -803,7 +813,7 @@
   function guardarEnHistorial(rpm, bpm, diag) {
     const historial = JSON.parse(localStorage.getItem('bioritmo_historial') || '[]');
     const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    historial.unshift({ fecha, rpm, bpm: bpm ? `${bpm} BPM` : '--', diag });
+    historial.unshift({ fecha, rpm: rpm > 0 ? `${rpm} RPM` : 'Medición', bpm: bpm ? `${bpm} BPM` : '--', diag });
     localStorage.setItem('bioritmo_historial', JSON.stringify(historial.slice(0, 10)));
     cargarHistorial();
   }
@@ -815,7 +825,7 @@
 
     container.innerHTML = historial.map(h => `
       <div class="history-item">
-        <span><strong>${h.fecha}</strong> - ${h.rpm} RPM</span>
+        <span><strong>${h.fecha}</strong> - ${h.rpm}</span>
         <span>${h.bpm} (${h.diag})</span>
       </div>
     `).join('');
