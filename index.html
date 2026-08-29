@@ -423,7 +423,7 @@
     <div id="tabCam" class="tab-content active">
       <div class="cam-box">
         <div class="video-preview"><video id="webcam" autoplay playsinline muted></video></div>
-        <button id="btnCamStart" class="btn-cam" onclick="medirPulsoCamara()">Mida con Cámara y Linterna (20s)</button>
+        <button id="btnCamStart" class="btn-cam" onclick="medirPulsoCamara()">Mida con Cámara y Linterna (5s prep + 20s)</button>
       </div>
     </div>
 
@@ -649,33 +649,53 @@
     if (midiendoCam) return;
     if (!await iniciarCamara()) return;
 
-    midiendoCam = true; rojoHistorial = []; ultimosLatidosCam = [];
+    midiendoCam = true; 
+    rojoHistorial = []; 
+    ultimosLatidosCam = [];
     document.getElementById('btnCamStart').disabled = true;
-    document.getElementById('bpmTexto').innerText = "Midiendo... Tapa la cámara y linterna suavemente con tu dedo.";
 
-    let duracion = 20, transcurrido = 0;
-    procesarFotogramaCamara();
+    // FASE 1: Preparación (5 segundos)
+    let prepTiempo = 5;
+    document.getElementById('bpmTexto').innerHTML = `⏳ Ubica tu dedo sobre la cámara y linterna... (<strong style="color:var(--neon-green)">${prepTiempo}s</strong>)`;
 
-    let intCam = setInterval(() => {
-      transcurrido += 0.5;
-      if (transcurrido >= duracion) {
-        clearInterval(intCam);
-        midiendoCam = false;
-        detenerCamara();
-        document.getElementById('btnCamStart').disabled = false;
-        emitirAvisoFinalizacion();
+    let intPrep = setInterval(() => {
+      prepTiempo--;
+      if (prepTiempo > 0) {
+        document.getElementById('bpmTexto').innerHTML = `⏳ Ubica tu dedo sobre la cámara y linterna... (<strong style="color:var(--neon-green)">${prepTiempo}s</strong>)`;
+      } else {
+        clearInterval(intPrep);
+        
+        // FASE 2: Medición Real (20 segundos)
+        document.getElementById('bpmTexto').innerText = "🔴 Midiendo pulso... Mantén el dedo estable.";
+        procesarFotogramaCamara();
 
-        if (ultimosLatidosCam.length >= 2) {
-          let intervalo = (ultimosLatidosCam[ultimosLatidosCam.length - 1] - ultimosLatidosCam[0]) / (ultimosLatidosCam.length - 1);
-          bpmRegistrado = Math.round(60000 / intervalo);
-          document.getElementById('bpmTexto').innerHTML = `✅ Pulso: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
-          const diag = evaluarDiagnostico();
-          guardarEnHistorial(0, bpmRegistrado, diag);
-        } else {
-          document.getElementById('bpmTexto').innerText = "Lectura borrosa. Intenta nuevamente.";
-        }
+        let duracionMedicion = 20;
+        let transcurrido = 0;
+
+        let intCam = setInterval(() => {
+          transcurrido += 0.5;
+          if (transcurrido >= duracionMedicion) {
+            clearInterval(intCam);
+            midiendoCam = false;
+            detenerCamara();
+            document.getElementById('btnCamStart').disabled = false;
+            
+            // Sonido de confirmación al terminar la medición
+            emitirAvisoFinalizacion();
+
+            if (ultimosLatidosCam.length >= 2) {
+              let intervalo = (ultimosLatidosCam[ultimosLatidosCam.length - 1] - ultimosLatidosCam[0]) / (ultimosLatidosCam.length - 1);
+              bpmRegistrado = Math.round(60000 / intervalo);
+              document.getElementById('bpmTexto').innerHTML = `✅ Pulso: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
+              const diag = evaluarDiagnostico();
+              guardarEnHistorial(0, bpmRegistrado, diag);
+            } else {
+              document.getElementById('bpmTexto').innerText = "Lectura borrosa. Intenta nuevamente asegurando cubrir bien la lente.";
+            }
+          }
+        }, 500);
       }
-    }, 500);
+    }, 1000);
   }
 
   function procesarFotogramaCamara() {
