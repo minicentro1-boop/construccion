@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BioRitmo: Entrenador de Respiración y Cardio v2.1</title>
+  <style>
+    :root {
+      --dur-subida: 5s;
+      --dur-bajada: 5s;
+      --neon-green: #83ee72;
+      --neon-blue: #64b5f6;
+      --neon-red: #ff5252;
+      --bg-dark: #12181b;
+      --card-bg: #1e262c;
+      --inner-box: #151b20;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-dark);
+      color: #e0e6ed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    header {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .btn-top {
+      background: transparent;
+      border: 2px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-top:hover {
+      background: var(--neon-green);
+      color: #0d1114;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      text-align: center;
+      max-width: 480px;
+      width: 100%;
+      border: 1px solid #2c3740;
+    }
+
+    .version-tag {
+      font-size: 0.75rem;
+      color: var(--neon-green);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    h2 {
+      color: var(--neon-green);
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.6rem;
+    }
+
+    .device-info {
+      font-size: 0.8rem;
+      color: #81a1c1;
+      background-color: var(--inner-box);
+      padding: 6px 12px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 15px;
+      border: 1px solid #28333c;
+    }
+
+    .section-box {
+      background-color: var(--inner-box);
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #28333c;
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: var(--neon-green);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-group label {
+      font-size: 0.75rem;
+      color: #a4c99b;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #445361;
+      background-color: #0d1114;
+      color: var(--neon-green);
+      font-size: 0.95rem;
+      font-weight: bold;
+      box-sizing: border-box;
+    }
+
+    .range-info {
+      font-size: 0.8rem;
+      color: #81a1c1;
+      margin-top: 8px;
+      background: rgba(0,0,0,0.2);
+      padding: 6px;
+      border-radius: 6px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      background: #0d1114;
+      color: #81a1c1;
+      border: 1px solid #28333c;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--neon-green);
+      color: #0d1114;
+      border-color: var(--neon-green);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .cam-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .video-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 2px solid var(--neon-red);
+      overflow: hidden;
+      position: relative;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .btn-cam {
+      background-color: var(--neon-red);
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-tap {
+      background-color: var(--neon-red);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.08s, background-color 0.2s;
+      user-select: none;
+      touch-action: manipulation;
+      text-align: center;
+    }
+
+    .btn-tap:active, .btn-tap.active-key {
+      transform: scale(0.96);
+      background-color: #ff1744;
+    }
+
+    .btn-audio {
+      background-color: #0284c7;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-audio.active {
+      background-color: #ef4444;
+    }
+
+    .bpm-display {
+      font-size: 0.85rem;
+      color: #e0e6ed;
+      margin-top: 8px;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    .btn-main {
+      background-color: var(--neon-green);
+      color: #0d1114;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+
+    .btn-main:disabled {
+      background-color: #445361;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .track {
+      position: relative;
+      width: 60px;
+      height: 160px;
+      background-color: #0d1114;
+      border-radius: 30px;
+      margin: 15px auto;
+      border: 2px solid #2c3740;
+      display: flex;
+      justify-content: center;
+    }
+
+    .ball {
+      position: absolute;
+      bottom: 10px;
+      width: 40px;
+      height: 40px;
+      background-color: var(--neon-green);
+      border-radius: 50%;
+      box-shadow: 0 0 15px rgba(131, 238, 114, 0.6);
+    }
+
+    .animar-subida {
+      animation: subir var(--dur-subida) linear forwards;
+    }
+
+    .animar-bajada {
+      animation: bajar var(--dur-bajada) linear forwards;
+    }
+
+    @keyframes subir {
+      0% { bottom: 10px; }
+      100% { bottom: 110px; }
+    }
+
+    @keyframes bajar {
+      0% { bottom: 110px; }
+      100% { bottom: 10px; }
+    }
+
+    .timer-display {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: #ffffff;
+      font-family: monospace;
+    }
+
+    .status-text {
+      font-size: 1.1rem;
+      font-weight: bold;
+      height: 25px;
+      color: var(--neon-green);
+      margin-top: 5px;
+    }
+
+    .btn-toggle-stats {
+      background: transparent;
+      border: 1px solid var(--neon-green);
+      color: var(--neon-green);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .stats-box {
+      margin-top: 10px;
+      padding: 15px;
+      background-color: #0d1114;
+      border-radius: 10px;
+      border: 1px dashed var(--neon-green);
+      font-size: 0.88rem;
+      color: #a4c99b;
+      text-align: left;
+      display: none;
+    }
+
+    .highlight {
+      color: #ffffff;
+    }
+
+    .diag-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-top: 4px;
+      background-color: #28333c;
+      color: var(--neon-green);
+    }
+
+    canvas { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="version-tag">Versión 2.1</div>
+  <a href="https://imaginhello.wixsite.com/imaginhellofotos" target="_blank" class="btn-top">
+    🏠 Inicio
+  </a>
+</header>
+
+<div class="container">
+  <h2>BioRitmo Neón</h2>
+
+  <div id="deviceTag" class="device-info">Detectando dispositivo...</div>
+
+  <div class="section-box">
+    <div class="section-title">👤 Perfil Diagnóstico Cardíaco</div>
+    <div class="grid-3">
+      <div class="field-group">
+        <label for="userSexo">Sexo:</label>
+        <select id="userSexo" onchange="actualizarRangoNormal()">
+          <option value="H">Hombre</option>
+          <option value="M">Mujer</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="userEdad">Edad:</label>
+        <select id="userEdad" onchange="actualizarRangoNormal()">
+          <option value="18-25">18-25</option>
+          <option value="26-35">26-35</option>
+          <option value="36-45">36-45</option>
+          <option value="46-55">46-55</option>
+          <option value="56-65" selected>56-65</option>
+          <option value="65+">65+</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="userActividad">Condición:</label>
+        <select id="userActividad" onchange="actualizarRangoNormal()">
+          <option value="sedentario">Sedentario</option>
+          <option value="normal" selected>Normal</option>
+          <option value="deportista">Deportista</option>
+        </select>
+      </div>
+    </div>
+    <div class="range-info" id="rangoEsperadoText">
+      💡 <strong>Rango normal de reposo:</strong> 60 - 75 BPM
+    </div>
+  </div>
+
+  <div class="section-box">
+    <div class="section-title">❤️ Medición de Pulso (Opcional)</div>
+    
+    <div class="tabs">
+      <button class="tab-btn active" onclick="cambiarTab('cam')">📷 Cámara (Óptico)</button>
+      <button class="tab-btn" onclick="cambiarTab('manual')">⌨️ Manual (Espacio/Tap)</button>
+    </div>
+
+    <div id="tabCam" class="tab-content active">
+      <div class="cam-box">
+        <div class="video-preview">
+          <video id="webcam" autoplay playsinline muted></video>
+        </div>
+        <button id="btnCamStart" class="btn-cam" onclick="medirPulsoCamara()">Mida con Cámara (20s)</button>
+      </div>
+    </div>
+
+    <div id="tabManual" class="tab-content">
+      <button id="btnTap" class="btn-tap">Toca aquí al ritmo de tu pulso</button>
+    </div>
+
+    <div class="bpm-display" id="bpmTexto">Elige un método arriba para registrar tu pulso.</div>
+  </div>
+
+  <div class="section-box">
+    <div class="section-title">🔊 Guía Auditiva Sincronizada</div>
+    <div class="grid-2" style="align-items: center;">
+      <div class="field-group">
+        <label for="audioGuiaCheck">Activar guía de voz/tono:</label>
+        <button id="btnAudioGuia" class="btn-audio" onclick="toggleGuiaAuditiva()">Sonido: DESACTIVADO</button>
+      </div>
+      <div style="font-size: 0.75rem; color: #81a1c1;">
+        Permite hacer el ejercicio con los ojos cerrados guiándote por tonos al Inhalar / Exhalar.
+      </div>
+    </div>
+  </div>
+
+  <div class="section-box">
+    <div class="section-title">🫁 Tiempos de Respiración</div>
+    <div class="grid-2">
+      <div class="field-group">
+        <label for="timeSubida">Inhalar (seg):</label>
+        <input type="number" id="timeSubida" value="5.00" step="0.01" min="1" max="30">
+      </div>
+
+      <div class="field-group">
+        <label for="timeBajada">Exhalar (seg):</label>
+        <input type="number" id="timeBajada" value="5.00" step="0.01" min="1" max="30">
+      </div>
+    </div>
+    <div class="field-group" style="margin-top: 10px;">
+      <label for="sessionMinutes">Duración de la sesión (minutos):</label>
+      <input type="number" id="sessionMinutes" value="1" min="0.5" step="0.5" max="60">
+    </div>
+  </div>
+
+  <button id="btnStart" class="btn-main" onclick="iniciarSesion()">Iniciar Sesión</button>
+
+  <div class="timer-display" id="cronometro">00:00</div>
+  <div class="status-text" id="estado">Listo para comenzar</div>
+
+  <div class="track">
+    <div id="ball" class="ball"></div>
+  </div>
+
+  <button class="btn-toggle-stats" id="btnToggleStats" onclick="toggleStatsBox()" style="display: none;">
+    📋 Ver Diagnóstico Completo e Impacto
+  </button>
+
+  <div id="statsBox" class="stats-box">
+    📊 <strong class="highlight">Resumen de la Sesión:</strong><br><br>
+    • Ciclos de respiración: <span id="resCiclos">0</span><br>
+    • Tiempo practicado: <span id="resTiempo">0</span> seg<br>
+    • Ritmo respiratorio: <span id="resRPM">0</span> RPM<br><br>
+    ❤️ <strong class="highlight">Impacto Cardíaco:</strong><br>
+    • Pulso registrado: <span id="resBpm">--</span> BPM<br>
+    • Estado respecto a tu perfil: <span id="resDiferencia">--</span><br><br>
+    📋 <strong class="highlight">Evaluación Diagnóstica:</strong><br>
+    <div id="resDiagnostico" class="diag-badge">Completa la sesión o medición</div>
+  </div>
+</div>
+
+<canvas id="processCanvas" width="100" height="100"></canvas>
+
+<script>
+  let cronoInterval = null;
+  let animacionTimeout = null;
+  let tiempoTranscurrido = 0;
+  let ciclosCompletados = 0;
+  let ejecutando = false;
+
+  let latidosManuales = [];
+  let bpmRegistrado = null;
+  let esMovil = false;
+
+  let audioCtx = null;
+  let guiaAuditivaActiva = false;
+
+  let midiendoCam = false;
+  let rojoHistorial = [];
+  let ultimosLatidosCam = [];
+  let videoStream = null;
+
+  window.addEventListener('DOMContentLoaded', () => {
+    esMovil = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 600;
+    const devTag = document.getElementById('deviceTag');
+    const btnTap = document.getElementById('btnTap');
+
+    if (esMovil) {
+      devTag.innerHTML = "📱 Modo Móvil Detectado";
+      btnTap.innerHTML = "❤️ Toca aquí al ritmo de tu pulso";
+    } else {
+      devTag.innerHTML = "💻 Modo Computadora Detectado";
+      btnTap.innerHTML = "❤️ Presiona la BARRA ESPACIADORA o toca aquí";
+    }
+    actualizarRangoNormal();
+
+    // Eventos táctiles mejorados para móvil
+    btnTap.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      registrarLatidoManual();
+    });
+    btnTap.addEventListener('click', (e) => {
+      if (!esMovil) registrarLatidoManual();
+    });
+  });
+
+  function cambiarTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    if (tab === 'cam') {
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('tabCam').classList.add('active');
+    } else {
+      document.querySelectorAll('.tab-btn')[1].classList.add('active');
+      document.getElementById('tabManual').classList.add('active');
+      detenerCamara();
+    }
+  }
+
+  function actualizarRangoNormal() {
+    const sexo = document.getElementById('userSexo').value;
+    const cond = document.getElementById('userActividad').value;
+    const info = document.getElementById('rangoEsperadoText');
+
+    if (cond === 'deportista') {
+      info.innerHTML = "💡 <strong>Rango ideal atleta:</strong> 45 - 60 BPM";
+    } else if (sexo === 'H') {
+      info.innerHTML = "💡 <strong>Rango normal esperado:</strong> 60 - 75 BPM";
+    } else {
+      info.innerHTML = "💡 <strong>Rango normal esperado:</strong> 65 - 80 BPM";
+    }
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+      if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+        e.preventDefault();
+        const btnTap = document.getElementById('btnTap');
+        btnTap.classList.add('active-key');
+        setTimeout(() => btnTap.classList.remove('active-key'), 100);
+        registrarLatidoManual();
+      }
+    }
+  });
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function toggleGuiaAuditiva() {
+    initAudio();
+    guiaAuditivaActiva = !guiaAuditivaActiva;
+    const btn = document.getElementById('btnAudioGuia');
+    btn.textContent = guiaAuditivaActiva ? "Sonido: ACTIVADO 🔊" : "Sonido: DESACTIVADO 🔇";
+    btn.classList.toggle('active', guiaAuditivaActiva);
+  }
+
+  function emitirTonoRespiracion(fase) {
+    if (!guiaAuditivaActiva || !audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+
+      if (fase === 'inhala') {
+        osc.frequency.setValueAtTime(260, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(520, audioCtx.currentTime + 0.4);
+      } else {
+        osc.frequency.setValueAtTime(520, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(260, audioCtx.currentTime + 0.4);
+      }
+
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
+    } catch(e){}
+  }
+
+  async function iniciarCamara() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("API de Cámara no soportada");
+      }
+      videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { exact: "environment" } } 
+      }).catch(async () => {
+        return await navigator.mediaDevices.getUserMedia({ video: true });
+      });
+
+      const video = document.getElementById('webcam');
+      video.srcObject = videoStream;
+      await video.play();
+
+      const track = videoStream.getVideoTracks()[0];
+      try {
+        const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+        if (capabilities.torch) {
+          await track.applyConstraints({ advanced: [{ torch: true }] });
+        }
+      } catch(e){}
+      return true;
+    } catch (e) {
+      document.getElementById('bpmTexto').innerText = "Cámara no disponible. Usa la medición Manual.";
+      return false;
+    }
+  }
+
+  function detenerCamara() {
+    if (videoStream) {
+      videoStream.getTracks().forEach(track => track.stop());
+      videoStream = null;
+    }
+  }
+
+  async function medirPulsoCamara() {
+    initAudio();
+    if (midiendoCam) return;
+
+    const listaCamaraOK = await iniciarCamara();
+    if (!listaCamaraOK) return;
+
+    midiendoCam = true;
+    rojoHistorial = [];
+    ultimosLatidosCam = [];
+    document.getElementById('btnCamStart').disabled = true;
+    document.getElementById('bpmTexto').innerText = "Midiendo... Pon suavemente tu dedo cubriendo la cámara.";
+
+    let duracion = 20;
+    let transcurrido = 0;
+
+    procesarFotogramaCamara();
+
+    let intCam = setInterval(() => {
+      transcurrido += 0.5;
+      if (transcurrido >= duracion) {
+        clearInterval(intCam);
+        midiendoCam = false;
+        detenerCamara();
+        document.getElementById('btnCamStart').disabled = false;
+        if (ultimosLatidosCam.length >= 2) {
+          let intervalo = (ultimosLatidosCam[ultimosLatidosCam.length - 1] - ultimosLatidosCam[0]) / (ultimosLatidosCam.length - 1);
+          bpmRegistrado = Math.round(60000 / intervalo);
+          document.getElementById('bpmTexto').innerHTML = `✅ Pulso Medido: <strong class="highlight">${bpmRegistrado} BPM</strong>`;
+        } else {
+          document.getElementById('bpmTexto').innerText = "Lectura difusa. Mantén el dedo firme e intenta de nuevo.";
+        }
+      }
+    }, 500);
+  }
+
+  function procesarFotogramaCamara() {
+    if (!midiendoCam) return;
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('processCanvas');
+    const ctx = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+      let sumaRojo = 0;
+      for (let i = 0; i < frameData.length; i += 4) {
+        sumaRojo += frameData[i];
+      }
+      let promedioRojo = sumaRojo / (frameData.length / 4);
+
+      rojoHistorial.push(promedioRojo);
+      if (rojoHistorial.length > 30) rojoHistorial.shift();
+
+      if (rojoHistorial.length >= 5) {
+        let actual = rojoHistorial[rojoHistorial.length - 1];
+        let previo = rojoHistorial[rojoHistorial.length - 2];
+        let anteprevio = rojoHistorial[rojoHistorial.length - 3];
+
+        if (previo > actual && previo > anteprevio && previo > 100) {
+          let ahora = Date.now();
+          if (ultimosLatidosCam.length === 0 || (ahora - ultimosLatidosCam[ultimosLatidosCam.length - 1]) > 400) {
+            ultimosLatidosCam.push(ahora);
+          }
+        }
+      }
+    }
+    requestAnimationFrame(procesarFotogramaCamara);
+  }
+
+  function registrarLatidoManual() {
+    initAudio();
+    const ahora = Date.now();
+    if (latidosManuales.length > 0 && (ahora - latidosManuales[latidosManuales.length - 1]) > 2500) {
+      latidosManuales = [];
+    }
+    latidosManuales.push(ahora);
+    const n = latidosManuales.length;
+
+    if (n < 10) {
+      document.getElementById('bpmTexto').innerText = `Toque ${n}/10... Sigue el ritmo de tu pulso`;
+    } else if (n === 10) {
+      let diferencias = [];
+      for (let i = 5; i < latidosManuales.length; i++) {
+        diferencias.push(latidosManuales[i] - latidosManuales[i - 1]);
+      }
+      const promedioMs = diferencias.reduce((a, b) => a + b) / diferencias.length;
+      bpmRegistrado = Math.round(60000 / promedioMs);
+      document.getElementById('bpmTexto').innerHTML = `✅ Pulso Registrado: <strong class="highlight">${bpmRegistrado} BPM</strong>`;
+      latidosManuales = [];
+    }
+  }
+
+  function iniciarSesion() {
+    if (ejecutando) return;
+    initAudio();
+
+    const tSubida = parseFloat(document.getElementById('timeSubida').value) || 5;
+    const tBajada = parseFloat(document.getElementById('timeBajada').value) || 5;
+    const duracionMinutos = parseFloat(document.getElementById('sessionMinutes').value) || 1;
+    const duracionTotalSeg = duracionMinutos * 60;
+
+    document.documentElement.style.setProperty('--dur-subida', `${tSubida}s`);
+    document.documentElement.style.setProperty('--dur-bajada', `${tBajada}s`);
+
+    ejecutando = true;
+    tiempoTranscurrido = 0;
+    ciclosCompletados = 0;
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('statsBox').style.display = 'none';
+    document.getElementById('btnToggleStats').style.display = 'none';
+    document.getElementById('cronometro').innerText = "00:00";
+
+    cronoInterval = setInterval(() => {
+      tiempoTranscurrido++;
+      document.getElementById('cronometro').innerText = formatearTiempo(tiempoTranscurrido);
+
+      if (tiempoTranscurrido >= duracionTotalSeg) {
+        finalizarSesion();
+      }
+    }, 1000);
+
+    ejecutarFaseRespiracion(tSubida, tBajada, duracionTotalSeg);
+  }
+
+  function ejecutarFaseRespiracion(tSubida, tBajada, maxSegundos) {
+    if (!ejecutando) return;
+
+    const bola = document.getElementById('ball');
+    const estado = document.getElementById('estado');
+
+    estado.innerText = "🫁 Inhala...";
+    estado.style.color = "var(--neon-green)";
+    bola.className = "ball animar-subida";
+    emitirTonoRespiracion('inhala');
+
+    animacionTimeout = setTimeout(() => {
+      if (!ejecutando) return;
+
+      estado.innerText = "😮‍💨 Exhala...";
+      estado.style.color = "var(--neon-blue)";
+      bola.className = "ball animar-bajada";
+      emitirTonoRespiracion('exhala');
+
+      animacionTimeout = setTimeout(() => {
+        if (!ejecutando) return;
+
+        ciclosCompletados++;
+        const tiempoCiclo = tSubida + tBajada;
+        if (tiempoTranscurrido + tiempoCiclo <= maxSegundos) {
+          ejecutarFaseRespiracion(tSubida, tBajada, maxSegundos);
+        } else {
+          finalizarSesion();
+        }
+      }, tBajada * 1000);
+
+    }, tSubida * 1000);
+  }
+
+  function finalizarSesion() {
+    ejecutando = false;
+    clearInterval(cronoInterval);
+    clearTimeout(animacionTimeout);
+
+    document.getElementById('ball').className = "ball";
+    document.getElementById('estado').innerText = "✨ ¡Sesión completada!";
+    document.getElementById('estado').style.color = "var(--neon-green)";
+    document.getElementById('btnStart').disabled = false;
+
+    const minutosPracticados = tiempoTranscurrido / 60;
+    const rpm = minutosPracticados > 0 ? (ciclosCompletados / minutosPracticados).toFixed(1) : 0;
+
+    document.getElementById('resCiclos').innerText = ciclosCompletados;
+    document.getElementById('resTiempo').innerText = tiempoTranscurrido;
+    document.getElementById('resRPM').innerText = rpm;
+    document.getElementById('resBpm').innerText = bpmRegistrado ? `${bpmRegistrado} BPM` : "No registrado";
+
+    evaluarResultadoFinal();
+    document.getElementById('btnToggleStats').style.display = 'block';
+  }
+
+  function evaluarResultadoFinal() {
+    const sexo = document.getElementById('userSexo').value;
+    const cond = document.getElementById('userActividad').value;
+    const diag = document.getElementById('resDiagnostico');
+    const dif = document.getElementById('resDiferencia');
+
+    if (!bpmRegistrado) {
+      diag.innerText = "Sesión completada sin registro de pulso.";
+      dif.innerText = "--";
+      return;
+    }
+
+    let minIdeal = sexo === 'H' ? 60 : 65;
+    let maxIdeal = sexo === 'H' ? 75 : 80;
+    if (cond === 'deportista') { minIdeal = 45; maxIdeal = 60; }
+
+    if (bpmRegistrado >= minIdeal && bpmRegistrado <= maxIdeal) {
+      diag.innerText = "🟢 Pulso Óptimo dentro del Rango Normal";
+      dif.innerText = "Excelente equilibrio cardiorrespiratorio";
+    } else if (bpmRegistrado < minIdeal) {
+      diag.innerText = "🔵 Pulso Muy Relajado / Bradicardia Fisiológica";
+      dif.innerText = "Respuesta vagal profunda";
+    } else {
+      diag.innerText = "🟠 Pulso Ligeramente Elevado";
+      dif.innerText = "Se sugiere repetir la sesión con ritmos exhalatorios más largos";
+    }
+  }
+
+  function toggleStatsBox() {
+    const box = document.getElementById('statsBox');
+    const btn = document.getElementById('btnToggleStats');
+    if (box.style.display === 'none' || box.style.display === '') {
+      box.style.display = 'block';
+      btn.innerText = "📋 Ocultar Diagnóstico";
+    } else {
+      box.style.display = 'none';
+      btn.innerText = "📋 Ver Diagnóstico Completo e Impacto";
+    }
+  }
+
+  function formatearTiempo(segundos) {
+    const mins = Math.floor(segundos / 60);
+    const secs = segundos % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+</script>
+
+</body>
+</html>
