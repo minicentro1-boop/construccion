@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BioRitmo: Entrenador de Respiración y Cardio v3.2</title>
+  <title>BioRitmo: Entrenador de Respiración y Cardio v3.3</title>
   <style>
     :root {
       --dur-subida: 5s;
@@ -366,7 +366,7 @@
 <body>
 
 <header>
-  <div class="version-tag">Versión 3.2</div>
+  <div class="version-tag">Versión 3.3</div>
   <a href="https://imaginhello.wixsite.com/imaginhellofotos" target="_blank" class="btn-top">🏠 Inicio</a>
 </header>
 
@@ -490,7 +490,7 @@
   </div>
 </div>
 
-<canvas id="processCanvas" width="100" height="100"></canvas>
+<canvas id="processCanvas" width="50" height="50"></canvas>
 
 <script>
   let cronoInterval = null, animacionTimeout = null;
@@ -553,7 +553,7 @@
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime); // Pitido agudo tipo pulsiómetro
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
       gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
       osc.connect(gain);
@@ -680,17 +680,26 @@
             detenerCamara();
             document.getElementById('btnCamStart').disabled = false;
             
-            // Sonido de confirmación al terminar la medición
             emitirAvisoFinalizacion();
 
-            if (ultimosLatidosCam.length >= 2) {
-              let intervalo = (ultimosLatidosCam[ultimosLatidosCam.length - 1] - ultimosLatidosCam[0]) / (ultimosLatidosCam.length - 1);
-              bpmRegistrado = Math.round(60000 / intervalo);
-              document.getElementById('bpmTexto').innerHTML = `✅ Pulso: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
-              const diag = evaluarDiagnostico();
-              guardarEnHistorial(0, bpmRegistrado, diag);
+            if (ultimosLatidosCam.length >= 3) {
+              // Filtrar intervalos extremos para mayor precisión
+              let diferencias = [];
+              for(let i = 1; i < ultimosLatidosCam.length; i++) {
+                let diff = ultimosLatidosCam[i] - ultimosLatidosCam[i-1];
+                if(diff >= 300 && diff <= 1500) diferencias.push(diff);
+              }
+              if(diferencias.length > 0) {
+                let promedioIntervalo = diferencias.reduce((a,b) => a+b, 0) / diferencias.length;
+                bpmRegistrado = Math.round(60000 / promedioIntervalo);
+                document.getElementById('bpmTexto').innerHTML = `✅ Pulso: <strong style="color:#fff">${bpmRegistrado} BPM</strong>`;
+                const diag = evaluarDiagnostico();
+                guardarEnHistorial(0, bpmRegistrado, diag);
+              } else {
+                document.getElementById('bpmTexto').innerText = "Lectura inestable. Intenta cubriendo bien la luz.";
+              }
             } else {
-              document.getElementById('bpmTexto').innerText = "Lectura borrosa. Intenta nuevamente asegurando cubrir bien la lente.";
+              document.getElementById('bpmTexto').innerText = "Lectura borrosa. Asegura presionar suavemente.";
             }
           }
         }, 500);
@@ -698,24 +707,38 @@
     }, 1000);
   }
 
+  /* DETECCIÓN DE PULSO ADAPTATIVA / MEJOR SENSIBILIDAD */
   function procesarFotogramaCamara() {
     if (!midiendoCam) return;
     const video = document.getElementById('webcam'), canvas = document.getElementById('processCanvas'), ctx = canvas.getContext('2d');
+    
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const frameData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      
       let sumaRojo = 0;
-      for (let i = 0; i < frameData.length; i += 4) sumaRojo += frameData[i];
+      for (let i = 0; i < frameData.length; i += 4) {
+        sumaRojo += frameData[i];
+      }
       let promedioRojo = sumaRojo / (frameData.length / 4);
 
       rojoHistorial.push(promedioRojo);
-      if (rojoHistorial.length > 30) rojoHistorial.shift();
+      if (rojoHistorial.length > 20) rojoHistorial.shift();
 
-      if (rojoHistorial.length >= 5) {
-        let actual = rojoHistorial[rojoHistorial.length - 1], previo = rojoHistorial[rojoHistorial.length - 2], anteprevio = rojoHistorial[rojoHistorial.length - 3];
-        if (previo > actual && previo > anteprevio && previo > 100) {
+      // Umbral adaptativo basado en promedio local
+      if (rojoHistorial.length >= 8) {
+        let mediaLocal = rojoHistorial.reduce((a, b) => a + b) / rojoHistorial.length;
+        let actual = rojoHistorial[rojoHistorial.length - 1];
+        let previo = rojoHistorial[rojoHistorial.length - 2];
+        let anteprevio = rojoHistorial[rojoHistorial.length - 3];
+
+        // Se detecta pulso al cruzar por encima de la media con un pico local de contraste
+        let esPico = (previo > anteprevio) && (previo >= actual) && (previo > mediaLocal);
+
+        if (esPico && previo > 50) { // Umbral mínimo de luz
           let ahora = Date.now();
-          if (ultimosLatidosCam.length === 0 || (ahora - ultimosLatidosCam[ultimosLatidosCam.length - 1]) > 400) {
+          // Período refractario reducido a 300ms para capturar latidos más cercanos
+          if (ultimosLatidosCam.length === 0 || (ahora - ultimosLatidosCam[ultimosLatidosCam.length - 1]) > 300) {
             ultimosLatidosCam.push(ahora);
             reproducirSonidoLatido();
           }
