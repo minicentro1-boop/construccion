@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BioRitmo: Entrenador de Respiración y Cardio v3.0</title>
+  <title>BioRitmo: Entrenador de Respiración y Cardio v3.1</title>
   <style>
     :root {
       --dur-subida: 5s;
@@ -317,7 +317,6 @@
       margin-top: 5px;
     }
 
-    /* Caja de Resultados Visibles */
     .results-panel {
       display: none;
       background: #0d1114;
@@ -335,7 +334,6 @@
       margin-bottom: 10px;
     }
 
-    /* Historial */
     .history-list {
       max-height: 150px;
       overflow-y: auto;
@@ -368,7 +366,7 @@
 <body>
 
 <header>
-  <div class="version-tag">Versión 3.0</div>
+  <div class="version-tag">Versión 3.1</div>
   <a href="https://imaginhello.wixsite.com/imaginhellofotos" target="_blank" class="btn-top">🏠 Inicio</a>
 </header>
 
@@ -425,7 +423,7 @@
     <div id="tabCam" class="tab-content active">
       <div class="cam-box">
         <div class="video-preview"><video id="webcam" autoplay playsinline muted></video></div>
-        <button id="btnCamStart" class="btn-cam" onclick="medirPulsoCamara()">Mida con Cámara (20s)</button>
+        <button id="btnCamStart" class="btn-cam" onclick="medirPulsoCamara()">Mida con Cámara y Linterna (20s)</button>
       </div>
     </div>
 
@@ -549,11 +547,9 @@
     btn.classList.toggle('active', guiaAuditivaActiva);
   }
 
-  // Simulación de sonido de Latido (Lub-Dub)
   function reproducirSonidoLatido() {
     if (!audioCtx) return;
     try {
-      // Primer pulso (Lub)
       const osc1 = audioCtx.createOscillator();
       const gain1 = audioCtx.createGain();
       osc1.type = 'sine';
@@ -564,7 +560,6 @@
       osc1.connect(gain1); gain1.connect(audioCtx.destination);
       osc1.start(); osc1.stop(audioCtx.currentTime + 0.08);
 
-      // Segundo pulso (Dub)
       setTimeout(() => {
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
@@ -599,14 +594,27 @@
     } catch(e){}
   }
 
-  /* CÁMARA Y MANUAL */
+  /* CÁMARA Y LINTERNA */
   async function iniciarCamara() {
     try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
-        .catch(async () => await navigator.mediaDevices.getUserMedia({ video: true }));
+      videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { exact: "environment" } } 
+      }).catch(async () => await navigator.mediaDevices.getUserMedia({ video: true }));
+
       const video = document.getElementById('webcam');
       video.srcObject = videoStream;
       await video.play();
+
+      // Intentar encender la linterna (Torch)
+      const track = videoStream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+
+      if (capabilities.torch) {
+        await track.applyConstraints({
+          advanced: [{ torch: true }]
+        }).catch(err => console.log("No se pudo encender la linterna:", err));
+      }
+
       return true;
     } catch (e) {
       document.getElementById('bpmTexto').innerText = "Cámara no disponible. Usa el modo Manual.";
@@ -615,7 +623,17 @@
   }
 
   function detenerCamara() {
-    if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+    if (videoStream) { 
+      videoStream.getTracks().forEach(t => {
+        // Apagar la linterna explícitamente si está activa
+        const capabilities = t.getCapabilities ? t.getCapabilities() : {};
+        if (capabilities.torch) {
+          t.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+        }
+        t.stop();
+      }); 
+      videoStream = null; 
+    }
   }
 
   async function medirPulsoCamara() {
@@ -625,7 +643,7 @@
 
     midiendoCam = true; rojoHistorial = []; ultimosLatidosCam = [];
     document.getElementById('btnCamStart').disabled = true;
-    document.getElementById('bpmTexto').innerText = "Midiendo... Tapa la cámara suavemente con tu dedo.";
+    document.getElementById('bpmTexto').innerText = "Midiendo... Tapa la cámara y linterna suavemente con tu dedo.";
 
     let duracion = 20, transcurrido = 0;
     procesarFotogramaCamara();
@@ -753,7 +771,6 @@
     const rpm = tiempoTranscurrido > 0 ? ((ciclosCompletados / tiempoTranscurrido) * 60).toFixed(1) : 0;
     const diag = evaluarDiagnostico();
 
-    // Muestra de Resultados Directos
     document.getElementById('resTiempo').innerText = tiempoTranscurrido;
     document.getElementById('resCiclos').innerText = ciclosCompletados;
     document.getElementById('resRPM').innerText = rpm;
